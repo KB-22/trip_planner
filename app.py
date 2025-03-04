@@ -3,8 +3,8 @@ from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 
-# Database Configuration (Using SQLite for local testing)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///places.db'
+# Database Configuration (Using PostgreSQL from Render)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://trip_planner_db_e5dt_user:Eff1WCXnhXz1EkzpWpjfPYmSIVlHXQtF@dpg-cv3bs83tq21c73biscc0-a/trip_planner_db_e5dt'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -45,4 +45,4 @@ def visit_place(place_id):
     return redirect(url_for('index'))
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0', port=10000)
