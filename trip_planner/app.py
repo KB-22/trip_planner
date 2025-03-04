@@ -1,44 +1,31 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template
 from flask_sqlalchemy import SQLAlchemy
 import os
 
 app = Flask(__name__)
 
-# Database Configuration
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///database.db")
+# Use environment variable for security
+DATABASE_URL = "postgresql://trip_planner_db_e5dt_user:Eff1WCXnhXz1EkzpWpjfPYmSIVlHXQtF@dpg-cv3bs83tq21c73biscc0-a/trip_planner_db_e5dt"
+
+# Configure SQLAlchemy
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-# Database Model
+# Define a database model
 class Place(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    visits = db.Column(db.Integer, default=0)
+    description = db.Column(db.Text, nullable=False)
+
+@app.before_first_request
+def create_tables():
+    db.create_all()
 
 @app.route('/')
 def home():
-    places = Place.query.order_by(Place.visits.desc()).all()
-    return render_template('home.html', places=places)
+    return "Trip Planner is Live with Database!"
 
-@app.route('/add', methods=['POST'])
-def add_place():
-    place_name = request.form.get('place')
-    if place_name:
-        new_place = Place(name=place_name, visits=0)
-        db.session.add(new_place)
-        db.session.commit()
-    return redirect(url_for('home'))
-
-@app.route('/visit/<int:place_id>')
-def visit_place(place_id):
-    place = Place.query.get(place_id)
-    if place:
-        place.visits += 1
-        db.session.commit()
-    return redirect(url_for('home'))
-
-if __name__ == '__main__':
-    db.create_all()
+if __name__ == "__main__":
     app.run(debug=True)
