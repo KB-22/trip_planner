@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="search-container">
+    <h2>Find Hidden Gems</h2>
+    <form action="/" method="GET">
+        <input type="text" name="query" placeholder="Search for places..." required>
+        <button type="submit">Search</button>
+    </form>
+</div>
+
+<div class="add-place-container">
+    <h2>Add an Underrated Place</h2>
+    <form action="/add_place" method="POST">
+        <input type="text" name="place_name" placeholder="Place Name" required>
+        <input type="text" name="district" placeholder="District" required>
+        <textarea name="description" placeholder="Description" required></textarea>
+        <button type="submit">Add Place</button>
+    </form>
+</div>
+
+{% if places %}
+<div class="places-list">
+    <h2>Discovered Places</h2>
+    <ul>
+        {% for place in places %}
+        <li>
+            <h3>{{ place.name }}</h3>
+            <p>{{ place.description }}</p>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+{% endblock %}
