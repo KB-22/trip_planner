@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Travel Itinerary</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        .container { width: 50%; margin: auto; }
+        .place { padding: 10px; border: 1px solid #ddd; margin: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Travel Itinerary</h1>
+    
+    <form action="/add" method="post">
+        <input type="text" name="name" placeholder="Place Name" required>
+        <input type="text" name="location" placeholder="Location" required>
+        <button type="submit">Add Place</button>
+    </form>
+
+    <h2>Top Visited Places</h2>
+    <div class="container">
+        {% for place in places %}
+        <div class="place">
+            <h3>{{ place.name }}</h3>
+            <p>Location: {{ place.location }}</p>
+            <p>Visits: {{ place.visit_count }}</p>
+            <a href="/visit/{{ place.id }}">Visit Again</a>
+        </div>
+        {% endfor %}
+    </div>
+</body>
+</html>
