@@ -1,44 +1,52 @@
-from flask import Flask, render_template, request, redirect, url_for
-from flask_sqlalchemy import SQLAlchemy
-import os
+from flask import Flask, render_template, request, redirect
+import psycopg2
 
 app = Flask(__name__)
 
-# Database Configuration
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///database.db")
-app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+DB_CONFIG = {
+    "dbname": "trip_planner_db",
+    "user": "your_username",
+    "password": "your_password",
+    "host": "your_host",
+    "port": "5432"
+}
 
-db = SQLAlchemy(app)
+def get_db_connection():
+    return psycopg2.connect(**DB_CONFIG)
 
-# Database Model
-class Place(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    visits = db.Column(db.Integer, default=0)
-
-@app.route('/')
+@app.route('/', methods=['GET'])
 def home():
-    places = Place.query.order_by(Place.visits.desc()).all()
-    return render_template('home.html', places=places)
+    search_query = request.args.get('query', '')
 
-@app.route('/add', methods=['POST'])
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    if search_query:
+        cur.execute("SELECT * FROM places WHERE name ILIKE %s", ('%' + search_query + '%',))
+    else:
+        cur.execute("SELECT * FROM places ORDER BY id DESC")
+
+    places = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    return render_template('home.html', places=[{"name": p[1], "description": p[2]} for p in places])
+
+@app.route('/add_place', methods=['POST'])
 def add_place():
-    place_name = request.form.get('place')
-    if place_name:
-        new_place = Place(name=place_name, visits=0)
-        db.session.add(new_place)
-        db.session.commit()
-    return redirect(url_for('home'))
+    place_name = request.form['place_name']
+    district = request.form['district']
+    description = request.form['description']
 
-@app.route('/visit/<int:place_id>')
-def visit_place(place_id):
-    place = Place.query.get(place_id)
-    if place:
-        place.visits += 1
-        db.session.commit()
-    return redirect(url_for('home'))
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("INSERT INTO places (name, district, description) VALUES (%s, %s, %s)", 
+                (place_name, district, description))
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect('/')
 
 if __name__ == '__main__':
-    db.create_all()
     app.run(debug=True)
