@@ -1,52 +1,62 @@
-from flask import Flask, render_template, request, redirect
+import os
+from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
-# PostgreSQL Database Configuration
-app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://trip_planner_db_e5dt_user:Eff1WCXnhXz1EkzpWpjfPYmSIVlHXQtF@dpg-cv3bs83tq21c73biscc0-a/trip_planner_db_e5dt"
+# ✅ Define the database URL as a variable
+DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://trip_planner_user:password@host:port/trip_planner')
+
+# ✅ Configure SQLAlchemy with the database URL
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-# Database Model
+# ✅ Define the Places model
 class Place(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    location = db.Column(db.String(100), nullable=False)  # Added missing column
+    name = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text)
+    district = db.Column(db.String(100), nullable=False)
     visit_count = db.Column(db.Integer, default=0)
 
-# Ensure database tables are created
+# ✅ Create the database tables (run this once)
 with app.app_context():
     db.create_all()
 
-# Home Page - Show Places Ordered by Visit Count
-@app.route('/')
-def index():
-    places = Place.query.order_by(Place.visit_count.desc()).all()
-    return render_template('index.html', places=places)
-
-# Add New Place (No Authentication, Open to Public)
+# ✅ Route for adding a new place
 @app.route('/add_place', methods=['POST'])
 def add_place():
-    name = request.form['name']
-    location = request.form['location']
+    data = request.json
+    new_place = Place(
+        name=data['name'],
+        description=data.get('description', ''),
+        district=data['district'],
+        visit_count=0
+    )
+    db.session.add(new_place)
+    db.session.commit()
+    return jsonify({"message": "Place added successfully"}), 201
 
-    if name and location:
-        new_place = Place(name=name, location=location)
-        db.session.add(new_place)
-        db.session.commit()
-    
-    return redirect('/')
+# ✅ Route for fetching places by district (sorted by visit count)
+@app.route('/places/<district>', methods=['GET'])
+def get_places(district):
+    places = Place.query.filter_by(district=district).order_by(Place.visit_count.desc()).all()
+    return jsonify([{"id": p.id, "name": p.name, "description": p.description, "visit_count": p.visit_count} for p in places])
 
-# Increase Visit Count
-@app.route('/visit/<int:place_id>')
-def visit_place(place_id):
+# ✅ Route for increasing visit count of a place
+@app.route('/visit/<int:place_id>', methods=['POST'])
+def increase_visit(place_id):
     place = Place.query.get(place_id)
     if place:
         place.visit_count += 1
         db.session.commit()
-    return redirect('/')
+        return jsonify({"message": "Visit count updated"}), 200
+    return jsonify({"error": "Place not found"}), 404
 
+# ✅ Start the Flask app
 if __name__ == '__main__':
     app.run(debug=True)
